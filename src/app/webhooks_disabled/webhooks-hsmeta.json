@@ -1,0 +1,20 @@
+{
+  "uid": "miraculous_maids_demo_webhooks",
+  "type": "webhooks",
+  "config": {
+    "settings": {
+      "targetUrl": "https://miraculous-maids-app.hubspot-functions.net/deal-won",
+      "maxConcurrentRequests": 10
+    },
+    "subscriptions": {
+      "crmObjects": [
+        {
+          "subscriptionType": "object.propertyChange",
+          "objectType": "deal",
+          "propertyName": "dealstage",
+          "active": true
+        }
+      ]
+    }
+  }
+}

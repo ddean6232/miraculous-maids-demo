@@ -1,0 +1,12 @@
+{
+  "name": "miraculous-maids-demo",
+  "version": "1.0.0",
+  "scopes": [
+    "contacts",
+    "crm.objects.deals.read"
+  ],
+  "features": [
+    "app",
+    "functions"
+  ]
+}

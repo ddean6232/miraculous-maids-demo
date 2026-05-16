@@ -1,0 +1,13 @@
+[project]
+name = "miraculous-maids-demo"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "dotenv>=0.9.9",
+    "fastapi>=0.136.1",
+    "pydantic[email]>=2.13.4",
+    "requests>=2.34.2",
+    "uvicorn>=0.47.0",
+]
