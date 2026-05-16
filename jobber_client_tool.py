@@ -3,7 +3,7 @@ import json
 import os
 
 # Standard headers required by Jobber
-JOBBER_TOKEN = "REDACTED_BY_SECURITY_PROTOCOL"
+JOBBER_TOKEN = os.getenv("JOBBER_CLIENT_ID")
 URL = "https://api.getjobber.com/api/graphql"
 HEADERS = {
     'Authorization': f'Bearer {JOBBER_TOKEN}',
