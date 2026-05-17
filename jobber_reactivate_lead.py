@@ -39,7 +39,7 @@ def find_client(name):
                     id
                     firstName
                     lastName
-                    defaultProperty {
+                    properties {
                         id
                     }
                 }
@@ -52,7 +52,11 @@ def find_client(name):
     
     edges = data.get("data", {}).get("clients", {}).get("edges", [])
     if edges:
-        return edges[0]["node"]
+        client = edges[0]["node"]
+        # Add a convenience field for the server to find the property
+        props = client.get("properties", [])
+        client["firstPropertyId"] = props[0]["id"] if props else None
+        return client
     return None
 
 def create_request(client_id, property_id, title, description):
@@ -107,13 +111,10 @@ if __name__ == '__main__':
     client_id = client_node["id"]
     
     # Step 2: Ensure they have a property (Requests require properties)
-    default_prop = client_node.get("defaultProperty")
-    if not default_prop:
-        # Note: robust implementation would create a property here if missing
-        print(json.dumps({"status": "error", "message": f"Client found, but has no default property. Cannot create request."}))
+    property_id = client_node.get("firstPropertyId")
+    if not property_id:
+        print(json.dumps({"status": "error", "message": f"Client found, but has no properties. Cannot create request."}))
         sys.exit(1)
-        
-    property_id = default_prop["id"]
     
     # Step 3: Create the Request
     request_data = create_request(client_id, property_id, args.title, args.description)
