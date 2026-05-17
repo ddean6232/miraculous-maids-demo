@@ -67,78 +67,73 @@ def check():
         token_manager.get_valid_token()
         return {"status": "ok"}
     except Exception as e:
-        raise HTTPException(status_code=503, detail="Jobber Auth failed")
+        return {"status": "error", "message": "Jobber Auth failed"}
 
 @app.get("/api/jobber/client_details", dependencies=[Depends(verify_token)])
 def get_details(searchTerm: str):
     res = jobber_get_client_details.get_client_details(searchTerm)
-    if not res: raise HTTPException(status_code=404, detail="Client not found")
+    if not res: return {"status": "error", "message": "Client not found"}
     return {"status": "success", "clients": res}
 
 class ReactivateRequest(BaseModel):
-    search: str  # Can be name, email, or phone
+    search: str
     title: str
     description: str
     daysThreshold: Optional[int] = 90
 
 @app.post("/api/jobber/reactivate_lead", dependencies=[Depends(verify_token)])
 def reactivate_lead(p: ReactivateRequest):
-    print(f"Reactivating lead for search: {p.search} (Threshold: {p.daysThreshold} days)")
     client = jobber_reactivate_lead.find_client(p.search)
     if not client: 
-        print(f"Search failed for: {p.search}")
-        raise HTTPException(status_code=404, detail=f"Client matching '{p.search}' not found.")
+        return {"status": "error", "message": f"Client matching '{p.search}' not found."}
     
-    # NEW: Validate Eligibility with dynamic threshold
     is_eligible, reason = jobber_reactivate_lead.validate_eligibility(client, days_threshold=p.daysThreshold)
     if not is_eligible:
-        print(f"Validation failed: {reason}")
-        raise HTTPException(status_code=403, detail=reason)
+        return {"status": "ineligible", "reason": reason, "clientName": client.get("name")}
     
     prop_id = client.get("firstPropertyId")
     if not prop_id: 
-        print(f"Client found ({client['id']}), but has no properties.")
-        raise HTTPException(status_code=400, detail="Client found, but has no properties to attach the request to.")
+        return {"status": "error", "message": "Client found, but has no properties to attach the request to."}
     
     req = jobber_reactivate_lead.create_request(client["id"], prop_id, p.title, p.description)
     if not req: 
-        raise HTTPException(status_code=400, detail="Failed to create lead request in Jobber.")
+        return {"status": "error", "message": "Failed to create lead request in Jobber."}
         
     return {"status": "success", "requestId": req["id"], "clientName": client.get("name")}
 
 @app.delete("/api/jobber/delete_client", dependencies=[Depends(verify_token)])
 def delete_client(clientId: str):
     success = jobber_delete_tool.delete_client(clientId)
-    if not success: raise HTTPException(status_code=400, detail="Failed to delete client")
+    if not success: return {"status": "error", "message": "Failed to delete client"}
     return {"status": "success"}
 
 @app.post("/api/jobber/create_client", dependencies=[Depends(verify_token)])
 def create_c(p: ClientRequest):
     res = jobber_create_client.create_client(p.firstName, p.lastName, p.email, p.company, p.phone)
-    if not res: raise HTTPException(status_code=400, detail="Failed")
+    if not res: return {"status": "error", "message": "Failed to create client"}
     return {"status": "success", "clientId": res["id"], "name": res["name"]}
 
 @app.post("/api/jobber/create_quote", dependencies=[Depends(verify_token)])
 def create_q(p: QuoteRequest):
     client, prop_id = jobber_create_quote.find_client_and_property(p.clientSearch)
-    if not client or not prop_id: raise HTTPException(status_code=404, detail="Client/Prop not found")
+    if not client or not prop_id: return {"status": "error", "message": "Client/Property not found"}
     items = [{"name": s.name, "price": s.price, "quantity": s.quantity} for s in p.services]
     quote = jobber_create_quote.create_quote(client["id"], prop_id, p.quoteTitle, items)
-    if not quote: raise HTTPException(status_code=400, detail="Quote failed")
+    if not quote: return {"status": "error", "message": "Quote creation failed"}
     return {"status": "success", "quoteId": quote["id"], "quoteLink": quote.get("clientHubUri")}
 
 @app.post("/api/jobber/create_job", dependencies=[Depends(verify_token)])
 def create_j(p: JobRequest):
     client, prop_id = jobber_create_quote.find_client_and_property(p.clientSearch)
-    if not client or not prop_id: raise HTTPException(status_code=404, detail="Client/Prop not found")
+    if not client or not prop_id: return {"status": "error", "message": "Client/Property not found"}
     job = jobber_create_job.create_job(prop_id, p.jobTitle, p.serviceName, p.price)
-    if not job: raise HTTPException(status_code=400, detail="Job creation failed")
+    if not job: return {"status": "error", "message": "Job creation failed"}
     return {"status": "success", "jobId": job["id"], "jobNumber": job["jobNumber"]}
 
 @app.post("/api/jobber/schedule_visit", dependencies=[Depends(verify_token)])
 def schedule(p: ScheduleRequest):
     res = jobber_schedule_visit.add_visit(p.jobId, p.visitTitle, p.startDate, p.startTime, p.endDate, p.endTime)
-    if not res: raise HTTPException(status_code=400, detail="Schedule failed")
+    if not res: return {"status": "error", "message": "Schedule failed"}
     return {"status": "success", "visitId": res["createdVisits"][0]["id"]}
 
 if __name__ == "__main__":
