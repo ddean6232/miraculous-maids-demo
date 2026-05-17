@@ -79,17 +79,18 @@ class ReactivateRequest(BaseModel):
     search: str  # Can be name, email, or phone
     title: str
     description: str
+    daysThreshold: Optional[int] = 90
 
 @app.post("/api/jobber/reactivate_lead", dependencies=[Depends(verify_token)])
 def reactivate_lead(p: ReactivateRequest):
-    print(f"Reactivating lead for search: {p.search}")
+    print(f"Reactivating lead for search: {p.search} (Threshold: {p.daysThreshold} days)")
     client = jobber_reactivate_lead.find_client(p.search)
     if not client: 
         print(f"Search failed for: {p.search}")
         raise HTTPException(status_code=404, detail=f"Client matching '{p.search}' not found.")
     
-    # NEW: Validate Eligibility
-    is_eligible, reason = jobber_reactivate_lead.validate_eligibility(client)
+    # NEW: Validate Eligibility with dynamic threshold
+    is_eligible, reason = jobber_reactivate_lead.validate_eligibility(client, days_threshold=p.daysThreshold)
     if not is_eligible:
         print(f"Validation failed: {reason}")
         raise HTTPException(status_code=403, detail=reason)

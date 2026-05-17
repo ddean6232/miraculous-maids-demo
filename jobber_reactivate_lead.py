@@ -156,6 +156,7 @@ if __name__ == '__main__':
     parser.add_argument("--search", required=True, help="Name, email, or phone of the client")
     parser.add_argument("--title", required=True, help="Short title for the new request")
     parser.add_argument("--description", required=True, help="Details for the request")
+    parser.add_argument("--days", type=int, default=90, help="Activity threshold in days (default: 90)")
     
     args = parser.parse_args()
 
@@ -166,7 +167,7 @@ if __name__ == '__main__':
         sys.exit(1)
         
     # Step 1.5: Validate Eligibility
-    is_eligible, reason = validate_eligibility(client_node)
+    is_eligible, reason = validate_eligibility(client_node, days_threshold=args.days)
     if not is_eligible:
         print(json.dumps({"status": "error", "message": reason}))
         sys.exit(1)
