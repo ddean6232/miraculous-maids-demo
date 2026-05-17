@@ -49,12 +49,12 @@ def create_job(property_id: str, job_title: str, service_name: str, price: float
     return {"status": "success", "jobId": job["id"], "jobNumber": job["jobNumber"]}
 
 @mcp.tool()
-def create_quote(client_id: str, property_id: str, quote_title: str, services: list):
-    """Generate a quote for a client property. Services should be a list of dicts with 'name' and 'price'."""
-    quote = jobber_create_quote.create_quote(client_id, property_id, quote_title, services)
-    if not quote:
-        return {"status": "error", "message": "Failed to create quote"}
-    return {"status": "success", "quoteId": quote["id"], "quoteLink": quote.get("clientHubUri")}
+def schedule_visit(job_id: str, visit_title: str, start_date: str, start_time: str, end_date: str, end_time: str):
+    """Schedule a visit for a job."""
+    res = jobber_schedule_visit.add_visit(job_id, visit_title, start_date, start_time, end_date, end_time)
+    if not res:
+        return {"status": "error", "message": "Failed to schedule visit"}
+    return {"status": "success", "visitId": res["createdVisits"][0]["id"]}
 
 if __name__ == "__main__":
     mcp.run(transport='stdio')

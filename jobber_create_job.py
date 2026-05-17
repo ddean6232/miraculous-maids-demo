@@ -20,7 +20,7 @@ def create_job(property_id, title, service_name, price):
         variables = {"input": {
             "propertyId": property_id, "title": title,
             "invoicing": {"invoicingType": "FIXED_PRICE", "invoicingSchedule": "ON_COMPLETION"},
-            "lineItems": [{"name": service_name, "quantity": 1, "unitPrice": float(price)}]
+            "lineItems": [{"name": service_name, "quantity": 1, "unitPrice": float(price), "saveToProductsAndServices": False}]
         }}
         response = requests.post(URL, headers=headers, json={"query": mutation, "variables": variables})
         data = response.json()
