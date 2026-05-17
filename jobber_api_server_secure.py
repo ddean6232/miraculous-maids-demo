@@ -10,10 +10,11 @@ import jobber_create_client
 import jobber_create_quote
 import jobber_create_job
 import jobber_schedule_visit
+import jobber_get_client_details
 
 load_dotenv()
 
-API_SERVER_TOKEN = os.getenv("API_SERVER_SECRET", "default-fallback-only-for-dev")
+API_SERVER_TOKEN = os.getenv("API_SERVER_SECRET")
 API_PORT = int(os.getenv("API_PORT", 8989))
 API_HOST = os.getenv("API_HOST", "0.0.0.0")
 
@@ -65,6 +66,12 @@ def check():
         return {"status": "ok"}
     except Exception as e:
         raise HTTPException(status_code=503, detail="Jobber Auth failed")
+
+@app.get("/api/jobber/client_details", dependencies=[Depends(verify_token)])
+def get_details(searchTerm: str):
+    res = jobber_get_client_details.get_client_details(searchTerm)
+    if not res: raise HTTPException(status_code=404, detail="Client not found")
+    return {"status": "success", "clients": res}
 
 @app.post("/api/jobber/create_client", dependencies=[Depends(verify_token)])
 def create_c(p: ClientRequest):

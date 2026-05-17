@@ -3,34 +3,38 @@
 This API provides a unified, secure gateway to your Jobber account. It abstracts GraphQL life-cycles into simple REST endpoints, making it perfect for your automation stack (n8n and Voice Agents).
 
 ## 1. Prerequisites
+- **Configuration:** Ensure your `.env` file is populated with your Jobber tokens, `API_SERVER_SECRET`, and optionally `API_PORT` (defaults to 8989).
 - **Server:** Run the API server locally:
   `uv run jobber_api_server_secure.py`
-- **Expose:** Expose it to the internet:
+- **Expose:** Expose the configured port to the internet (e.g., if using 8989):
   `tailscale funnel 8989`
-- **Configuration:** Ensure your `.env` file is populated with your Jobber tokens and an `API_SERVER_SECRET`.
 
 ## 2. API Endpoints
-All endpoints require a `POST` request with a JSON body and an `Authorization: Bearer <API_SERVER_SECRET>` header.
+Endpoints require an `Authorization: Bearer <API_SERVER_SECRET>` header.
 
-### A. Create a New Client
+### A. Check Client Details
+- **Endpoint:** `GET /api/jobber/client_details?searchTerm=...`
+- **Purpose:** Returns a list of matching clients and their property information.
+
+### B. Create a New Client
 - **Endpoint:** `POST /api/jobber/create_client`
 - **Body:** `{"firstName": "...", "lastName": "...", "email": "..."}`
 
-### B. Generate a Quote
+### C. Generate a Quote
 - **Endpoint:** `POST /api/jobber/create_quote`
 - **Body:** `{"clientSearch": "Name", "quoteTitle": "...", "services": [{"name": "Labor", "price": 100.0}]}`
 
-### C. Spawn a Direct Job
+### D. Spawn a Direct Job
 - **Endpoint:** `POST /api/jobber/create_job`
 - **Body:** `{"clientSearch": "Name", "jobTitle": "...", "serviceName": "...", "price": 100.0}`
 
-### D. Schedule Visit
+### E. Schedule Visit
 - **Endpoint:** `POST /api/jobber/schedule_visit`
 - **Body:** `{"jobId": "...", "visitTitle": "...", "startDate": "YYYY-MM-DD", ...}`
 
-### E. Health Check
+### F. Health Check
 - **Endpoint:** `GET /api/jobber/check_status`
-- **Purpose:** Diagnostic. VERIFIES if the server is up AND if the Jobber OAuth tokens are still valid. 
+- **Purpose:** Diagnostic. Verifies if the server is up and if the Jobber OAuth tokens are still valid.
 
 ---
 
