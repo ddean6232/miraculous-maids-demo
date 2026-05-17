@@ -46,15 +46,8 @@ def find_client(search_term):
                     isLead
                     properties {
                         id
-                        invoices(first: 5, sortBy: issuedDate, sortOrder: desc) {
-                            edges {
-                                node {
-                                    issuedDate
-                                }
-                            }
-                        }
                     }
-                    invoices(first: 5, sortBy: issuedDate, sortOrder: desc) {
+                    invoices(first: 5) {
                         edges {
                             node {
                                 issuedDate
@@ -75,21 +68,13 @@ def find_client(search_term):
         props = client.get("properties", [])
         client["firstPropertyId"] = props[0]["id"] if props else None
         
-        # Collect ALL invoice dates from client and all properties
+        # Collect invoice dates (Invoices are at the client level)
         dates = []
-        # Client level invoices
         for inv in client.get("invoices", {}).get("edges", []):
             if inv["node"]["issuedDate"]:
                 dates.append(inv["node"]["issuedDate"])
         
-        # Property level invoices (just in case)
-        for prop in props:
-            for inv in prop.get("invoices", {}).get("edges", []):
-                if inv["node"]["issuedDate"]:
-                    dates.append(inv["node"]["issuedDate"])
-        
         if dates:
-            # Sort to get the most recent
             dates.sort(reverse=True)
             client["lastInvoiceDate"] = dates[0]
         else:
