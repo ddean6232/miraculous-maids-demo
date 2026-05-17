@@ -29,14 +29,12 @@ def get_client_details(search_term):
                         email
                         phone
                         properties {
-                            nodes {
-                                id
-                                address {
-                                    street
-                                    city
-                                    province
-                                    postalCode
-                                }
+                            id
+                            address {
+                                street
+                                city
+                                province
+                                postalCode
                             }
                         }
                     }
@@ -49,6 +47,11 @@ def get_client_details(search_term):
         response.raise_for_status()
         data = response.json()
         
+        # Check for GraphQL errors
+        if "errors" in data:
+            print(f"GraphQL Errors: {data['errors']}", file=sys.stderr)
+            return None
+
         edges = data.get("data", {}).get("clients", {}).get("edges", [])
         if not edges:
             return None
@@ -57,7 +60,7 @@ def get_client_details(search_term):
         for edge in edges:
             node = edge["node"]
             properties = []
-            for prop in node.get("properties", {}).get("nodes", []):
+            for prop in node.get("properties", []):
                 properties.append({
                     "id": prop["id"],
                     "address": prop.get("address", {})
