@@ -30,6 +30,8 @@ def execute_graphql(query, variables=None):
         
     return data
 
+from datetime import datetime, timedelta
+
 def find_client(search_term):
     query = """
     query FindClient($searchTerm: String!) {
@@ -40,8 +42,17 @@ def find_client(search_term):
                     firstName
                     lastName
                     name
+                    isArchived
+                    isLead
                     properties {
                         id
+                    }
+                    invoices(first: 1, sortBy: issuedDate, sortOrder: desc) {
+                        edges {
+                            node {
+                                issuedDate
+                            }
+                        }
                     }
                 }
             }
@@ -50,14 +61,43 @@ def find_client(search_term):
     """
     data = execute_graphql(query, {"searchTerm": search_term})
     if not data: return None
-    
+
     edges = data.get("data", {}).get("clients", {}).get("edges", [])
     if edges:
         client = edges[0]["node"]
-        # Add a convenience field for the server to find the property
         props = client.get("properties", [])
         client["firstPropertyId"] = props[0]["id"] if props else None
+
+        # Extract last invoice date
+        inv_edges = client.get("invoices", {}).get("edges", [])
+        client["lastInvoiceDate"] = inv_edges[0]["node"]["issuedDate"] if inv_edges else None
+
         return client
+    return None
+
+def validate_eligibility(client, days_threshold=90):
+    """
+    Validates if a client is eligible for reactivation.
+    Must be archived, NOT a lead, and no invoice in the last N days.
+    """
+    if not client.get("isArchived"):
+        return False, "Client is not archived. Only archived past customers can be reactivated."
+
+    if client.get("isLead"):
+        return False, "Client is marked as a Lead. Reactivation is for past customers only."
+
+    last_inv_str = client.get("lastInvoiceDate")
+    if last_inv_str:
+        # Jobber dates are ISO8601 like 2024-01-01T00:00:00Z
+        # We handle potential variations by taking the first 10 chars (YYYY-MM-DD)
+        last_inv_date = datetime.strptime(last_inv_str[:10], "%Y-%m-%d")
+        cutoff_date = datetime.now() - timedelta(days=days_threshold)
+
+        if last_inv_date > cutoff_date:
+            return False, f"Client had activity on {last_inv_str[:10]}, which is within the last {days_threshold} days."
+
+    return True, "Eligible"
+
     return None
 
 def create_request(client_id, property_id, title, description):
@@ -123,6 +163,12 @@ if __name__ == '__main__':
     client_node = find_client(args.search)
     if not client_node:
         print(json.dumps({"status": "error", "message": f"Client matching '{args.search}' not found."}))
+        sys.exit(1)
+        
+    # Step 1.5: Validate Eligibility
+    is_eligible, reason = validate_eligibility(client_node)
+    if not is_eligible:
+        print(json.dumps({"status": "error", "message": reason}))
         sys.exit(1)
         
     client_id = client_node["id"]

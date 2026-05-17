@@ -88,6 +88,12 @@ def reactivate_lead(p: ReactivateRequest):
         print(f"Search failed for: {p.search}")
         raise HTTPException(status_code=404, detail=f"Client matching '{p.search}' not found.")
     
+    # NEW: Validate Eligibility
+    is_eligible, reason = jobber_reactivate_lead.validate_eligibility(client)
+    if not is_eligible:
+        print(f"Validation failed: {reason}")
+        raise HTTPException(status_code=403, detail=reason)
+    
     prop_id = client.get("firstPropertyId")
     if not prop_id: 
         print(f"Client found ({client['id']}), but has no properties.")
