@@ -26,12 +26,13 @@ def create_job(property_id, title, service_name, price):
         data = response.json()
         errors = data.get("data", {}).get("jobCreate", {}).get("userErrors", [])
         if errors:
-            print(f"Job Error: {errors}", file=sys.stderr)
-            return None
-        return data["data"]["jobCreate"]["job"]
+            error_msg = "; ".join([e.get("message", "Unknown error") for e in errors])
+            print(f"Job Error: {error_msg}", file=sys.stderr)
+            return {"status": "error", "message": error_msg}
+        return {"status": "success", "job": data["data"]["jobCreate"]["job"]}
     except Exception as e:
         print(f"Error creating job: {e}")
-        return None
+        return {"status": "error", "message": str(e)}
 
 if __name__ == '__main__':
     import argparse

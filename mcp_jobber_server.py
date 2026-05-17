@@ -42,9 +42,10 @@ def reactivate_lead(search: str, title: str, description: str, days_threshold: i
 @mcp.tool()
 def create_job(property_id: str, job_title: str, service_name: str, price: float):
     """Convert a property into a new service job."""
-    job = jobber_create_job.create_job(property_id, job_title, service_name, price)
-    if not job:
-        return {"status": "error", "message": "Failed to create job"}
+    res = jobber_create_job.create_job(property_id, job_title, service_name, price)
+    if res.get("status") == "error":
+        return res
+    job = res.get("job")
     return {"status": "success", "jobId": job["id"], "jobNumber": job["jobNumber"]}
 
 @mcp.tool()
