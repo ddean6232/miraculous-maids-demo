@@ -56,4 +56,4 @@ def create_quote(client_id: str, property_id: str, quote_title: str, services: l
     return {"status": "success", "quoteId": quote["id"], "quoteLink": quote.get("clientHubUri")}
 
 if __name__ == "__main__":
-    mcp.run()
+    mcp.run(transport='stdio')
