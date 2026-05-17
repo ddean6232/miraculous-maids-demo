@@ -46,8 +46,15 @@ def find_client(search_term):
                     isLead
                     properties {
                         id
+                        invoices(first: 5, sortBy: issuedDate, sortOrder: desc) {
+                            edges {
+                                node {
+                                    issuedDate
+                                }
+                            }
+                        }
                     }
-                    invoices(first: 1, sortBy: issuedDate, sortOrder: desc) {
+                    invoices(first: 5, sortBy: issuedDate, sortOrder: desc) {
                         edges {
                             node {
                                 issuedDate
@@ -61,17 +68,33 @@ def find_client(search_term):
     """
     data = execute_graphql(query, {"searchTerm": search_term})
     if not data: return None
-
+    
     edges = data.get("data", {}).get("clients", {}).get("edges", [])
     if edges:
         client = edges[0]["node"]
         props = client.get("properties", [])
         client["firstPropertyId"] = props[0]["id"] if props else None
-
-        # Extract last invoice date
-        inv_edges = client.get("invoices", {}).get("edges", [])
-        client["lastInvoiceDate"] = inv_edges[0]["node"]["issuedDate"] if inv_edges else None
-
+        
+        # Collect ALL invoice dates from client and all properties
+        dates = []
+        # Client level invoices
+        for inv in client.get("invoices", {}).get("edges", []):
+            if inv["node"]["issuedDate"]:
+                dates.append(inv["node"]["issuedDate"])
+        
+        # Property level invoices (just in case)
+        for prop in props:
+            for inv in prop.get("invoices", {}).get("edges", []):
+                if inv["node"]["issuedDate"]:
+                    dates.append(inv["node"]["issuedDate"])
+        
+        if dates:
+            # Sort to get the most recent
+            dates.sort(reverse=True)
+            client["lastInvoiceDate"] = dates[0]
+        else:
+            client["lastInvoiceDate"] = None
+            
         return client
     return None
 
@@ -80,22 +103,30 @@ def validate_eligibility(client, days_threshold=90):
     Validates if a client is eligible for reactivation.
     Must be archived, NOT a lead, and no invoice in the last N days.
     """
-    if not client.get("isArchived"):
-        return False, "Client is not archived. Only archived past customers can be reactivated."
+    client_name = client.get("name", "Unknown")
+    is_archived = client.get("isArchived")
+    is_lead = client.get("isLead")
+    last_inv = client.get("lastInvoiceDate")
+    
+    print(f"DEBUG Validation for {client_name}: archived={is_archived}, lead={is_lead}, last_inv={last_inv}")
 
-    if client.get("isLead"):
-        return False, "Client is marked as a Lead. Reactivation is for past customers only."
-
-    last_inv_str = client.get("lastInvoiceDate")
-    if last_inv_str:
-        # Jobber dates are ISO8601 like 2024-01-01T00:00:00Z
-        # We handle potential variations by taking the first 10 chars (YYYY-MM-DD)
-        last_inv_date = datetime.strptime(last_inv_str[:10], "%Y-%m-%d")
+    if is_archived is False:
+        return False, f"Client '{client_name}' is NOT archived. Only archived past customers can be reactivated."
+    
+    if is_lead is True:
+        return False, f"Client '{client_name}' is still marked as a Lead. Reactivation is for past customers only."
+    
+    if last_inv:
+        last_inv_date = datetime.strptime(last_inv[:10], "%Y-%m-%d")
         cutoff_date = datetime.now() - timedelta(days=days_threshold)
-
         if last_inv_date > cutoff_date:
-            return False, f"Client had activity on {last_inv_str[:10]}, which is within the last {days_threshold} days."
-
+            return False, f"Client '{client_name}' had activity on {last_inv[:10]}, which is within the last {days_threshold} days."
+    else:
+        # If they NEVER had an invoice, are they really a "past customer"?
+        # The user said "never had an invoice paid", which might mean they should be blocked.
+        # Let's assume for now that NO invoices ever = not a past customer.
+        return False, f"Client '{client_name}' has no invoice history. Reactivation is for customers with past billing."
+            
     return True, "Eligible"
 
     return None
