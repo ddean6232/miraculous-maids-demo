@@ -10,7 +10,7 @@ def create_job(property_id, title, service_name, price):
         token = token_manager.get_valid_token()
         headers = {'Authorization': f'Bearer {token}', 'X-JOBBER-GRAPHQL-VERSION': '2025-04-16', 'Content-Type': 'application/json'}
         mutation = """
-        mutation CreateJob($input: JobCreateInput!) {
+        mutation CreateJob($input: JobCreateAttributes!) {
             jobCreate(input: $input) {
                 job { id jobNumber jobStatus }
                 userErrors { message path }
@@ -20,16 +20,23 @@ def create_job(property_id, title, service_name, price):
         variables = {"input": {
             "propertyId": property_id, "title": title,
             "invoicing": {"invoicingType": "FIXED_PRICE", "invoicingSchedule": "ON_COMPLETION"},
-            "lineItems": [{"name": service_name, "quantity": 1, "unitPrice": float(price), "saveToProductsAndServices": False}]
+            "lineItems": [{"name": service_name, "quantity": 1, "unitPrice": float(price)}]
         }}
         response = requests.post(URL, headers=headers, json={"query": mutation, "variables": variables})
         data = response.json()
-        errors = data.get("data", {}).get("jobCreate", {}).get("userErrors", [])
+        if "errors" in data:
+            error_msg = "; ".join([e.get("message", "Unknown GraphQL error") for e in data["errors"]])
+            print(f"GraphQL Error: {error_msg}", file=sys.stderr)
+            return {"status": "error", "message": error_msg}
+            
+        job_create = data.get("data", {}).get("jobCreate", {})
+        errors = job_create.get("userErrors", [])
         if errors:
             error_msg = "; ".join([e.get("message", "Unknown error") for e in errors])
-            print(f"Job Error: {error_msg}", file=sys.stderr)
+            print(f"Job User Error: {error_msg}", file=sys.stderr)
             return {"status": "error", "message": error_msg}
-        return {"status": "success", "job": data["data"]["jobCreate"]["job"]}
+            
+        return {"status": "success", "job": job_create.get("job")}
     except Exception as e:
         print(f"Error creating job: {e}")
         return {"status": "error", "message": str(e)}

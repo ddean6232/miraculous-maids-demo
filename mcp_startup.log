@@ -1,6 +1,11 @@
 Processing request of type ListToolsRequest
+Processing request of type CallToolRequest
+GraphQL Error: JobCreateInput isn't a defined input type (on $input) (Did you mean `JobCreateNoteInput` or `JobCloseInput`?)
+Processing request of type ListToolsRequest
 Processing request of type ListResourcesRequest
 Processing request of type ListPromptsRequest
+Processing request of type CallToolRequest
 Processing request of type ListToolsRequest
 Processing request of type CallToolRequest
-Processing request of type CallToolRequest
+GraphQL Error: JobCreateInput isn't a defined input type (on $input) (Did you mean `JobCreateNoteInput` or `JobCloseInput`?)
+Processing request of type ListToolsRequest
