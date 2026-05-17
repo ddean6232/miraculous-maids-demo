@@ -9,16 +9,12 @@ import sys
 URL = "https://api.getjobber.com/api/graphql"
 
 def get_headers_via_manager():
-    try:
-        token = token_manager.get_valid_token()
-            return {
-                'Authorization': f'Bearer {token}',
-                'X-JOBBER-GRAPHQL-VERSION': '2025-04-16',
-                'Content-Type': 'application/json'
-            }
-    except FileNotFoundError:
-        print("Error: jobber_tokens.json not found.", file=sys.stderr)
-        sys.exit(1)
+    token = token_manager.get_valid_token()
+    return {
+        'Authorization': f'Bearer {token}',
+        'X-JOBBER-GRAPHQL-VERSION': '2025-04-16',
+        'Content-Type': 'application/json'
+    }
 
 def execute_graphql(query, variables=None):
     headers = get_headers_via_manager()

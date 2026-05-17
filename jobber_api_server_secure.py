@@ -11,6 +11,8 @@ import jobber_create_quote
 import jobber_create_job
 import jobber_schedule_visit
 import jobber_get_client_details
+import jobber_reactivate_lead
+import jobber_delete_tool
 
 load_dotenv()
 
@@ -72,6 +74,27 @@ def get_details(searchTerm: str):
     res = jobber_get_client_details.get_client_details(searchTerm)
     if not res: raise HTTPException(status_code=404, detail="Client not found")
     return {"status": "success", "clients": res}
+
+class ReactivateRequest(BaseModel):
+    clientName: str
+    title: str
+    description: str
+
+@app.post("/api/jobber/reactivate_lead", dependencies=[Depends(verify_token)])
+def reactivate_lead(p: ReactivateRequest):
+    client = jobber_reactivate_lead.find_client(p.clientName)
+    if not client: raise HTTPException(status_code=404, detail="Client not found")
+    prop_id = client.get("defaultProperty", {}).get("id")
+    if not prop_id: raise HTTPException(status_code=400, detail="Client has no property")
+    req = jobber_reactivate_lead.create_request(client["id"], prop_id, p.title, p.description)
+    if not req: raise HTTPException(status_code=400, detail="Failed to create lead request")
+    return {"status": "success", "requestId": req["id"]}
+
+@app.delete("/api/jobber/delete_client", dependencies=[Depends(verify_token)])
+def delete_client(clientId: str):
+    success = jobber_delete_tool.delete_client(clientId)
+    if not success: raise HTTPException(status_code=400, detail="Failed to delete client")
+    return {"status": "success"}
 
 @app.post("/api/jobber/create_client", dependencies=[Depends(verify_token)])
 def create_c(p: ClientRequest):
