@@ -61,31 +61,24 @@ def find_client(search_term):
     return None
 
 def create_request(client_id, property_id, title, description):
-    mutation = """
+    # Step 1: Create the Request
+    request_mutation = """
     mutation CreateRequest($input: RequestCreateInput!) {
         requestCreate(input: $input) {
-            request {
-                id
-                title
-                requestStatus
-            }
-            userErrors {
-                message
-                path
-            }
+            request { id title requestStatus }
+            userErrors { message path }
         }
     }
     """
-    variables = {
+    request_variables = {
         "input": {
             "clientId": client_id,
             "propertyId": property_id,
-            "title": title,
-            "description": description
+            "title": title
         }
     }
     
-    data = execute_graphql(mutation, variables)
+    data = execute_graphql(request_mutation, request_variables)
     if not data: return None
     
     errors = data.get("data", {}).get("requestCreate", {}).get("userErrors", [])
@@ -93,7 +86,32 @@ def create_request(client_id, property_id, title, description):
         print(f"RequestCreate Error: {errors}", file=sys.stderr)
         return None
         
-    return data["data"]["requestCreate"]["request"]
+    request = data["data"]["requestCreate"]["request"]
+    request_id = request["id"]
+
+    # Step 2: Add the description as a Note
+    if description:
+        note_mutation = """
+        mutation CreateRequestNote($requestId: EncodedId!, $input: RequestCreateNoteInput!) {
+            requestCreateNote(requestId: $requestId, input: $input) {
+                note { id }
+                userErrors { message }
+            }
+        }
+        """
+        note_variables = {
+            "requestId": request_id,
+            "input": {
+                "message": description
+            }
+        }
+        note_data = execute_graphql(note_mutation, note_variables)
+        if note_data:
+            note_errors = note_data.get("data", {}).get("requestCreateNote", {}).get("userErrors", [])
+            if note_errors:
+                print(f"Note Error: {note_errors}", file=sys.stderr)
+    
+    return request
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Convert an existing Jobber client back into a Lead by creating a Request.")
