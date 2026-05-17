@@ -10,7 +10,7 @@ def add_visit(job_id, title, start_date, start_time, end_date, end_time, timezon
         token = token_manager.get_valid_token()
         headers = {'Authorization': f'Bearer {token}', 'X-JOBBER-GRAPHQL-VERSION': '2025-04-16', 'Content-Type': 'application/json'}
         mutation = """
-        mutation AddScheduledVisit($jobId: ID!, $input: VisitCreateInput!) {
+        mutation AddScheduledVisit($jobId: EncodedId!, $input: VisitCreateInput!) {
             visitCreate(jobId: $jobId, input: $input) {
                 createdVisits { id title }
                 job { id jobStatus }
@@ -27,9 +27,12 @@ def add_visit(job_id, title, start_date, start_time, end_date, end_time, timezon
         }]}}
         response = requests.post(URL, headers=headers, json={"query": mutation, "variables": variables})
         data = response.json()
+        if "errors" in data:
+            print(f"GraphQL Errors: {json.dumps(data['errors'], indent=2)}", file=sys.stderr)
+            return None
         errors = data.get("data", {}).get("visitCreate", {}).get("userErrors", [])
         if errors:
-            print(f"Visit Error: {errors}", file=sys.stderr)
+            print(f"Visit User Error: {errors}", file=sys.stderr)
             return None
         return data["data"]["visitCreate"]
     except Exception as e:

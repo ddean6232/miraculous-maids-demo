@@ -17,28 +17,34 @@ def create_job(property_id, title, service_name, price):
             }
         }
         """
+        # Ensure price is float and saveToProductsAndServices is explicitly false
         variables = {"input": {
-            "propertyId": property_id, "title": title,
+            "propertyId": property_id,
+            "title": title,
             "invoicing": {"invoicingType": "FIXED_PRICE", "invoicingSchedule": "ON_COMPLETION"},
-            "lineItems": [{"name": service_name, "quantity": 1, "unitPrice": float(price), "saveToProductsAndServices": False}]
+            "lineItems": [{
+                "name": service_name,
+                "quantity": 1,
+                "unitPrice": float(price),
+                "saveToProductsAndServices": False
+            }]
         }}
+        
         response = requests.post(URL, headers=headers, json={"query": mutation, "variables": variables})
         data = response.json()
+        
         if "errors" in data:
             error_msg = "; ".join([e.get("message", "Unknown GraphQL error") for e in data["errors"]])
-            print(f"GraphQL Error: {error_msg}", file=sys.stderr)
-            return {"status": "error", "message": error_msg}
+            return {"status": "error", "message": f"GraphQL Error: {error_msg}"}
             
         job_create = data.get("data", {}).get("jobCreate", {})
         errors = job_create.get("userErrors", [])
         if errors:
             error_msg = "; ".join([e.get("message", "Unknown error") for e in errors])
-            print(f"Job User Error: {error_msg}", file=sys.stderr)
             return {"status": "error", "message": error_msg}
             
         return {"status": "success", "job": job_create.get("job")}
     except Exception as e:
-        print(f"Error creating job: {e}")
         return {"status": "error", "message": str(e)}
 
 if __name__ == '__main__':

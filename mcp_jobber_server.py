@@ -44,7 +44,7 @@ def create_job(property_id: str, job_title: str, service_name: str, price: float
     """Convert a property into a new service job."""
     res = jobber_create_job.create_job(property_id, job_title, service_name, price)
     if res.get("status") == "error":
-        return res
+        return {"status": "error", "message": res.get("message")}
     job = res.get("job")
     return {"status": "success", "jobId": job["id"], "jobNumber": job["jobNumber"]}
 
