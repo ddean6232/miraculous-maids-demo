@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "jobber": {
+      "command": "uv",
+      "args": [
+        "run",
+        "/Users/darren_dean/projects/miraculous-maids-demo/mcp_jobber_server.py"
+      ],
+      "env": {
+        "API_SERVER_SECRET": "I7zgSAPuB0nVI7LHhPZ7dK40QQeNNFdS5El",
+        "JOBBER_CLIENT_ID": "4d27b061-e818-43d0-8382-e57853b33c6f",
+        "JOBBER_CLIENT_SECRET": "56f62e385fbb4a04554e1b33953d8dc9c532a20f6a6c6509ef31030c4ff303e4"
+      }
+    }
+  }
+}
