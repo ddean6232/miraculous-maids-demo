@@ -76,19 +76,28 @@ def get_details(searchTerm: str):
     return {"status": "success", "clients": res}
 
 class ReactivateRequest(BaseModel):
-    clientName: str
+    search: str  # Can be name, email, or phone
     title: str
     description: str
 
 @app.post("/api/jobber/reactivate_lead", dependencies=[Depends(verify_token)])
 def reactivate_lead(p: ReactivateRequest):
-    client = jobber_reactivate_lead.find_client(p.clientName)
-    if not client: raise HTTPException(status_code=404, detail="Client not found")
+    print(f"Reactivating lead for search: {p.search}")
+    client = jobber_reactivate_lead.find_client(p.search)
+    if not client: 
+        print(f"Search failed for: {p.search}")
+        raise HTTPException(status_code=404, detail=f"Client matching '{p.search}' not found.")
+    
     prop_id = client.get("firstPropertyId")
-    if not prop_id: raise HTTPException(status_code=400, detail="Client has no property")
+    if not prop_id: 
+        print(f"Client found ({client['id']}), but has no properties.")
+        raise HTTPException(status_code=400, detail="Client found, but has no properties to attach the request to.")
+    
     req = jobber_reactivate_lead.create_request(client["id"], prop_id, p.title, p.description)
-    if not req: raise HTTPException(status_code=400, detail="Failed to create lead request")
-    return {"status": "success", "requestId": req["id"]}
+    if not req: 
+        raise HTTPException(status_code=400, detail="Failed to create lead request in Jobber.")
+        
+    return {"status": "success", "requestId": req["id"], "clientName": client.get("name")}
 
 @app.delete("/api/jobber/delete_client", dependencies=[Depends(verify_token)])
 def delete_client(clientId: str):

@@ -30,7 +30,7 @@ def execute_graphql(query, variables=None):
         
     return data
 
-def find_client(name):
+def find_client(search_term):
     query = """
     query FindClient($searchTerm: String!) {
         clients(first: 1, searchTerm: $searchTerm) {
@@ -39,6 +39,7 @@ def find_client(name):
                     id
                     firstName
                     lastName
+                    name
                     properties {
                         id
                     }
@@ -47,7 +48,7 @@ def find_client(name):
         }
     }
     """
-    data = execute_graphql(query, {"searchTerm": name})
+    data = execute_graphql(query, {"searchTerm": search_term})
     if not data: return None
     
     edges = data.get("data", {}).get("clients", {}).get("edges", [])
@@ -96,16 +97,16 @@ def create_request(client_id, property_id, title, description):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Convert an existing Jobber client back into a Lead by creating a Request.")
-    parser.add_argument("--client_name", required=True, help="Full name of the client to search for")
-    parser.add_argument("--title", required=True, help="Short title for the new request (e.g., 'Spring Cleaning Inquiry')")
-    parser.add_argument("--description", required=True, help="Details captured by the Voice Agent")
+    parser.add_argument("--search", required=True, help="Name, email, or phone of the client")
+    parser.add_argument("--title", required=True, help="Short title for the new request")
+    parser.add_argument("--description", required=True, help="Details for the request")
     
     args = parser.parse_args()
 
     # Step 1: Find the Client
-    client_node = find_client(args.client_name)
+    client_node = find_client(args.search)
     if not client_node:
-        print(json.dumps({"status": "error", "message": f"Client '{args.client_name}' not found."}))
+        print(json.dumps({"status": "error", "message": f"Client matching '{args.search}' not found."}))
         sys.exit(1)
         
     client_id = client_node["id"]
